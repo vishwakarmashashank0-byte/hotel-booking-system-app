@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel Desk — Booking Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#12253B;
+    --navy-panel:#17304C;
+    --navy-line:#2B4A6B;
+    --gold:#D4A24C;
+    --gold-dim:#8A6B34;
+    --cream:#F3EEE2;
+    --ink:#1E1B14;
+    --muted:#9BB0C4;
+    --success:#4E9A6B;
+    --danger:#B5533E;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--navy);
+    color:var(--cream);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  .wrap{max-width:1100px; margin:0 auto; padding:32px 20px 70px;}
+
+  header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    flex-wrap:wrap;
+    gap:14px;
+    margin-bottom:8px;
+    padding-bottom:20px;
+    border-bottom:1px solid var(--navy-line);
+  }
+  .brand-eyebrow{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    letter-spacing:0.18em;
+    color:var(--gold);
+    margin-bottom:6px;
+  }
+  h1{
+    font-family:'Space Grotesk',sans-serif;
+    font-weight:700;
+    font-size:30px;
+  }
+  .api-status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .dot{width:8px; height:8px; border-radius:50%; background:var(--muted);}
+  .dot.online{background:var(--success); box-shadow:0 0 0 4px rgba(78,154,107,0.2);}
+  .dot.offline{background:var(--danger); box-shadow:0 0 0 4px rgba(181,83,62,0.2);}
+
+  .banner{
+    display:none;
+    background:rgba(181,83,62,0.15);
+    border:1px solid var(--danger);
+    color:#F0B5A6;
+    padding:14px 16px;
+    border-radius:4px;
+    font-size:13px;
+    margin:18px 0;
+    line-height:1.6;
+  }
+  .banner.show{display:block;}
+  .banner code{
+    background:rgba(0,0,0,0.25);
+    padding:2px 6px;
+    border-radius:3px;
+    font-family:'IBM Plex Mono',monospace;
+  }
+
+  /* tabs */
+  .tabs{
+    display:flex;
+    gap:4px;
+    margin:24px 0 22px;
+    border-bottom:1px solid var(--navy-line);
+  }
+  .tab-btn{
+    background:none;
+    border:none;
+    color:var(--muted);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+    letter-spacing:0.04em;
+    padding:11px 18px;
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+  }
+  .tab-btn.active{color:var(--gold); border-bottom-color:var(--gold);}
+  .tab-panel{display:none;}
+  .tab-panel.active{display:block;}
+
+  /* layout: form + list */
+  .grid{display:grid; grid-template-columns:320px 1fr; gap:22px;}
+  @media (max-width:820px){ .grid{grid-template-columns:1fr;} }
+
+  .panel{
+    background:var(--navy-panel);
+    border:1px solid var(--navy-line);
+    border-radius:6px;
+    padding:20px;
+  }
+  .panel h2{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:16px;
+    margin-bottom:16px;
+  }
+  .field{margin-bottom:13px;}
+  .field label{
+    display:block;
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.06em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin-bottom:5px;
+  }
+  .field input, .field select{
+    width:100%;
+    padding:10px 11px;
+    border-radius:3px;
+    border:1px solid var(--navy-line);
+    background:var(--navy);
+    color:var(--cream);
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+  }
+  .row-2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+
+  .btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    letter-spacing:0.04em;
+    padding:11px 16px;
+    border-radius:3px;
+    border:none;
+    cursor:pointer;
+    width:100%;
+    font-weight:600;
+  }
+  .btn-primary{background:var(--gold); color:var(--ink);}
+  .btn-primary:hover{background:#e0b158;}
+  .btn-primary:disabled{opacity:0.5; cursor:not-allowed;}
+
+  .list{display:flex; flex-direction:column; gap:12px;}
+
+  /* room / guest cards */
+  .item-card{
+    background:var(--navy-panel);
+    border:1px solid var(--navy-line);
+    border-radius:5px;
+    padding:16px 18px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    flex-wrap:wrap;
+  }
+  .item-card .info h3{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:16px;
+    margin-bottom:4px;
+  }
+  .item-card .info p{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+  }
+  .badge{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.05em;
+    padding:4px 10px;
+    border-radius:20px;
+    background:rgba(212,162,76,0.15);
+    color:var(--gold);
+    white-space:nowrap;
+  }
+  .badge.available{background:rgba(78,154,107,0.15); color:var(--success);}
+  .badge.unavailable{background:rgba(181,83,62,0.15); color:#E39786;}
+
+  /* booking ticket */
+  .ticket{
+    background:var(--navy-panel);
+    border:1px solid var(--navy-line);
+    border-radius:6px;
+    display:flex;
+    overflow:hidden;
+  }
+  .ticket .stub{
+    background:var(--navy);
+    padding:16px;
+    width:110px;
+    flex-shrink:0;
+    border-right:2px dashed var(--navy-line);
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+  }
+  .ticket .stub .code{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    color:var(--gold);
+    letter-spacing:0.05em;
+  }
+  .ticket .body{padding:16px 18px; flex:1;}
+  .ticket .body .top-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    flex-wrap:wrap;
+    gap:8px;
+    margin-bottom:10px;
+  }
+  .ticket .body h3{
+    font-family:'Space Grotesk',sans-serif;
+    font-size:16px;
+  }
+  .ticket .body .dates{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:12px;
+    color:var(--muted);
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+    margin-bottom:10px;
+  }
+  .ticket .body .amount{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:15px;
+    font-weight:600;
+    color:var(--gold);
+  }
+  .status-pill{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:10px;
+    letter-spacing:0.05em;
+    padding:4px 10px;
+    border-radius:20px;
+  }
+  .status-CONFIRMED{background:rgba(212,162,76,0.15); color:var(--gold);}
+  .status-CHECKED_IN{background:rgba(78,154,107,0.15); color:var(--success);}
+  .status-CHECKED_OUT{background:rgba(155,176,196,0.15); color:var(--muted);}
+  .status-CANCELLED{background:rgba(181,83,62,0.15); color:#E39786;}
+
+  .ticket-actions{
+    display:flex;
+    gap:8px;
+    margin-top:12px;
+    flex-wrap:wrap;
+  }
+  .mini-btn{
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    padding:7px 12px;
+    border-radius:3px;
+    border:1px solid var(--navy-line);
+    background:transparent;
+    color:var(--cream);
+    cursor:pointer;
+  }
+  .mini-btn:hover{border-color:var(--gold); color:var(--gold);}
+  .mini-btn.danger:hover{border-color:var(--danger); color:#E39786;}
+
+  .empty{
+    text-align:center;
+    padding:50px 20px;
+    color:var(--muted);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:13px;
+  }
+
+  .toast{
+    position:fixed;
+    bottom:20px;
+    left:50%;
+    transform:translateX(-50%) translateY(20px);
+    background:var(--navy-panel);
+    border:1px solid var(--navy-line);
+    color:var(--cream);
+    padding:12px 20px;
+    border-radius:6px;
+    font-size:13px;
+    opacity:0;
+    transition:all 0.25s;
+    pointer-events:none;
+    z-index:100;
+    max-width:90vw;
+  }
+  .toast.show{opacity:1; transform:translateX(-50%) translateY(0);}
+  .toast.error{border-color:var(--danger); color:#E39786;}
+  .toast.success{border-color:var(--success); color:#9FD4B4;}
+
+  footer{
+    text-align:center;
+    color:var(--muted);
+    font-family:'IBM Plex Mono',monospace;
+    font-size:11px;
+    margin-top:50px;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <div class="brand-eyebrow">FRONT DESK CONSOLE</div>
+      <h1>Hotel Booking Dashboard</h1>
+    </div>
+    <div class="api-status">
+      <span class="dot" id="statusDot"></span>
+      <span id="statusText">Checking API...</span>
+    </div>
+  </header>
+
+  <div class="banner" id="errorBanner">
+    Could not reach the API at <code id="apiUrlDisplay"></code>.<br>
+    Make sure your Spring Boot backend is running (in IntelliJ, hit the green ▶ Run button),
+    and that you've added the <code>WebConfig.java</code> CORS file — otherwise the browser will block these requests.
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="rooms">ROOMS</button>
+    <button class="tab-btn" data-tab="guests">GUESTS</button>
+    <button class="tab-btn" data-tab="bookings">BOOKINGS</button>
+  </div>
+
+  <!-- ROOMS -->
+  <div class="tab-panel active" id="tab-rooms">
+    <div class="grid">
+      <div class="panel">
+        <h2>Add Room</h2>
+        <div class="field">
+          <label>Room Number</label>
+          <input type="text" id="roomNumber" placeholder="e.g. 204">
+        </div>
+        <div class="field">
+          <label>Room Type</label>
+          <select id="roomType">
+            <option>SINGLE</option>
+            <option>DOUBLE</option>
+            <option selected>DELUXE</option>
+            <option>SUITE</option>
+          </select>
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label>Price / Night</label>
+            <input type="number" id="roomPrice" placeholder="3500">
+          </div>
+          <div class="field">
+            <label>Capacity</label>
+            <input type="number" id="roomCapacity" placeholder="2">
+          </div>
+        </div>
+        <button class="btn btn-primary" id="addRoomBtn">+ ADD ROOM</button>
+      </div>
+      <div>
+        <div class="list" id="roomsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GUESTS -->
+  <div class="tab-panel" id="tab-guests">
+    <div class="grid">
+      <div class="panel">
+        <h2>Add Guest</h2>
+        <div class="field">
+          <label>Full Name</label>
+          <input type="text" id="guestName" placeholder="e.g. Priya Sharma">
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="guestEmail" placeholder="priya@example.com">
+        </div>
+        <div class="field">
+          <label>Phone</label>
+          <input type="text" id="guestPhone" placeholder="9876543210">
+        </div>
+        <button class="btn btn-primary" id="addGuestBtn">+ ADD GUEST</button>
+      </div>
+      <div>
+        <div class="list" id="guestsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOOKINGS -->
+  <div class="tab-panel" id="tab-bookings">
+    <div class="grid">
+      <div class="panel">
+        <h2>New Booking</h2>
+        <div class="field">
+          <label>Room</label>
+          <select id="bookingRoom"></select>
+        </div>
+        <div class="field">
+          <label>Guest</label>
+          <select id="bookingGuest"></select>
+        </div>
+        <div class="row-2">
+          <div class="field">
+            <label>Check-in</label>
+            <input type="date" id="checkInDate">
+          </div>
+          <div class="field">
+            <label>Check-out</label>
+            <input type="date" id="checkOutDate">
+          </div>
+        </div>
+        <div class="field">
+          <label># of Guests</label>
+          <input type="number" id="numberOfGuests" value="1" min="1">
+        </div>
+        <button class="btn btn-primary" id="addBookingBtn">+ CREATE BOOKING</button>
+      </div>
+      <div>
+        <div class="list" id="bookingsList"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer>HOTEL DESK — CONNECTED TO SPRING BOOT API — HTML · CSS · JS</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  // ===== Change this if your backend runs on a different port =====
+  const API_BASE = "http://localhost:8080/api";
+
+  let rooms = [];
+  let guests = [];
+  let bookings = [];
+
+  // ---------- helpers ----------
+  function showToast(message, type){
+    const toast = document.getElementById("toast");
+    toast.textContent = message;
+    toast.className = "toast show" + (type ? " " + type : "");
+    setTimeout(()=> toast.classList.remove("show"), 3200);
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement("div");
+    div.textContent = str == null ? "" : String(str);
+    return div.innerHTML;
+  }
+
+  async function api(path, options = {}){
+    const res = await fetch(API_BASE + path, {
+      headers: { "Content-Type": "application/json" },
+      ...options
+    });
+    let data = null;
+    try { data = await res.json(); } catch(e) { /* no body */ }
+    if(!res.ok){
+      const message = (data && (data.message || JSON.stringify(data.errors))) || `Request failed (${res.status})`;
+      throw new Error(message);
+    }
+    return data;
+  }
+
+  // ---------- API status check ----------
+  async function checkApiStatus(){
+    const dot = document.getElementById("statusDot");
+    const text = document.getElementById("statusText");
+    const banner = document.getElementById("errorBanner");
+    document.getElementById("apiUrlDisplay").textContent = API_BASE;
+    try {
+      await fetch(API_BASE + "/rooms");
+      dot.className = "dot online";
+      text.textContent = "API connected — " + API_BASE;
+      banner.classList.remove("show");
+      return true;
+    } catch(e){
+      dot.className = "dot offline";
+      text.textContent = "API unreachable";
+      banner.classList.add("show");
+      return false;
+    }
+  }
+
+  // ---------- tabs ----------
+  document.querySelectorAll(".tab-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      document.querySelectorAll(".tab-btn").forEach(b=>b.classList.remove("active"));
+      document.querySelectorAll(".tab-panel").forEach(p=>p.classList.remove("active"));
+      btn.classList.add("active");
+      document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+    });
+  });
+
+  // ---------- ROOMS ----------
+  async function loadRooms(){
+    const listEl = document.getElementById("roomsList");
+    try {
+      rooms = await api("/rooms");
+      if(rooms.length === 0){
+        listEl.innerHTML = `<div class="empty">No rooms yet. Add your first room using the form.</div>`;
+      } else {
+        listEl.innerHTML = rooms.map(r => `
+          <div class="item-card">
+            <div class="info">
+              <h3>Room ${escapeHtml(r.roomNumber)} — ${escapeHtml(r.roomType)}</h3>
+              <p>₹${Number(r.pricePerNight).toLocaleString("en-IN")} / night · Capacity ${r.capacity}</p>
+            </div>
+            <span class="badge ${r.available ? "available" : "unavailable"}">${r.available ? "AVAILABLE" : "UNAVAILABLE"}</span>
+          </div>
+        `).join("");
+      }
+      populateRoomDropdown();
+    } catch(e){
+      listEl.innerHTML = `<div class="empty">Couldn't load rooms — check the API connection above.</div>`;
+    }
+  }
+
+  document.getElementById("addRoomBtn").addEventListener("click", async ()=>{
+    const roomNumber = document.getElementById("roomNumber").value.trim();
+    const roomType = document.getElementById("roomType").value;
+    const pricePerNight = parseFloat(document.getElementById("roomPrice").value);
+    const capacity = parseInt(document.getElementById("roomCapacity").value);
+
+    if(!roomNumber || !pricePerNight || !capacity){
+      showToast("Please fill in all room fields", "error");
+      return;
+    }
+
+    try {
+      await api("/rooms", {
+        method: "POST",
+        body: JSON.stringify({ roomNumber, roomType, pricePerNight, capacity, available: true })
+      });
+      showToast("Room added successfully", "success");
+      document.getElementById("roomNumber").value = "";
+      document.getElementById("roomPrice").value = "";
+      document.getElementById("roomCapacity").value = "";
+      loadRooms();
+    } catch(e){
+      showToast(e.message, "error");
+    }
+  });
+
+  // ---------- GUESTS ----------
+  async function loadGuests(){
+    const listEl = document.getElementById("guestsList");
+    try {
+      guests = await api("/guests");
+      if(guests.length === 0){
+        listEl.innerHTML = `<div class="empty">No guests yet. Add your first guest using the form.</div>`;
+      } else {
+        listEl.innerHTML = guests.map(g => `
+          <div class="item-card">
+            <div class="info">
+              <h3>${escapeHtml(g.name)}</h3>
+              <p>${escapeHtml(g.email)} · ${escapeHtml(g.phone)}</p>
+            </div>
+            <span class="badge">ID ${g.id}</span>
+          </div>
+        `).join("");
+      }
+      populateGuestDropdown();
+    } catch(e){
+      listEl.innerHTML = `<div class="empty">Couldn't load guests — check the API connection above.</div>`;
+    }
+  }
+
+  document.getElementById("addGuestBtn").addEventListener("click", async ()=>{
+    const name = document.getElementById("guestName").value.trim();
+    const email = document.getElementById("guestEmail").value.trim();
+    const phone = document.getElementById("guestPhone").value.trim();
+
+    if(!name || !email || !phone){
+      showToast("Please fill in all guest fields", "error");
+      return;
+    }
+
+    try {
+      await api("/guests", { method: "POST", body: JSON.stringify({ name, email, phone }) });
+      showToast("Guest added successfully", "success");
+      document.getElementById("guestName").value = "";
+      document.getElementById("guestEmail").value = "";
+      document.getElementById("guestPhone").value = "";
+      loadGuests();
+    } catch(e){
+      showToast(e.message, "error");
+    }
+  });
+
+  // ---------- BOOKINGS ----------
+  function populateRoomDropdown(){
+    const sel = document.getElementById("bookingRoom");
+    sel.innerHTML = rooms.map(r => `<option value="${r.id}">Room ${escapeHtml(r.roomNumber)} — ${escapeHtml(r.roomType)} (₹${r.pricePerNight}/night)</option>`).join("")
+      || `<option value="">No rooms available</option>`;
+  }
+
+  function populateGuestDropdown(){
+    const sel = document.getElementById("bookingGuest");
+    sel.innerHTML = guests.map(g => `<option value="${g.id}">${escapeHtml(g.name)} (${escapeHtml(g.email)})</option>`).join("")
+      || `<option value="">No guests available</option>`;
+  }
+
+  async function loadBookings(){
+    const listEl = document.getElementById("bookingsList");
+    try {
+      bookings = await api("/bookings");
+      if(bookings.length === 0){
+        listEl.innerHTML = `<div class="empty">No bookings yet. Create one using the form.</div>`;
+      } else {
+        const sorted = [...bookings].sort((a,b)=> b.id - a.id);
+        listEl.innerHTML = sorted.map(b => `
+          <div class="ticket">
+            <div class="stub">
+              <div class="code">#${String(b.id).padStart(4,"0")}</div>
+            </div>
+            <div class="body">
+              <div class="top-row">
+                <h3>${escapeHtml(b.room?.roomNumber || "—")} · ${escapeHtml(b.guest?.name || "—")}</h3>
+                <span class="status-pill status-${b.status}">${escapeHtml(b.status)}</span>
+              </div>
+              <div class="dates">
+                <span>IN: ${escapeHtml(b.checkInDate)}</span>
+                <span>OUT: ${escapeHtml(b.checkOutDate)}</span>
+                <span>${b.numberOfGuests} guest(s)</span>
+              </div>
+              <div class="amount">₹${Number(b.totalAmount).toLocaleString("en-IN")}</div>
+              <div class="ticket-actions">
+                ${b.status === "CONFIRMED" ? `<button class="mini-btn" data-action="checkin" data-id="${b.id}">Check In</button>` : ""}
+                ${b.status === "CHECKED_IN" ? `<button class="mini-btn" data-action="checkout" data-id="${b.id}">Check Out</button>` : ""}
+                ${(b.status === "CONFIRMED" || b.status === "CHECKED_IN") ? `<button class="mini-btn danger" data-action="cancel" data-id="${b.id}">Cancel</button>` : ""}
+                <button class="mini-btn danger" data-action="delete" data-id="${b.id}">Delete</button>
+              </div>
+            </div>
+          </div>
+        `).join("");
+      }
+      attachBookingActions();
+    } catch(e){
+      listEl.innerHTML = `<div class="empty">Couldn't load bookings — check the API connection above.</div>`;
+    }
+  }
+
+  function attachBookingActions(){
+    document.querySelectorAll("[data-action]").forEach(btn=>{
+      btn.addEventListener("click", async ()=>{
+        const id = btn.dataset.id;
+        const action = btn.dataset.action;
+        try {
+          if(action === "checkin") await api(`/bookings/${id}/checkin`, { method: "PUT" });
+          if(action === "checkout") await api(`/bookings/${id}/checkout`, { method: "PUT" });
+          if(action === "cancel") await api(`/bookings/${id}/cancel`, { method: "PUT" });
+          if(action === "delete"){
+            if(!confirm("Delete this booking record?")) return;
+            await api(`/bookings/${id}`, { method: "DELETE" });
+          }
+          showToast("Booking updated", "success");
+          loadBookings();
+        } catch(e){
+          showToast(e.message, "error");
+        }
+      });
+    });
+  }
+
+  document.getElementById("addBookingBtn").addEventListener("click", async ()=>{
+    const roomId = parseInt(document.getElementById("bookingRoom").value);
+    const guestId = parseInt(document.getElementById("bookingGuest").value);
+    const checkInDate = document.getElementById("checkInDate").value;
+    const checkOutDate = document.getElementById("checkOutDate").value;
+    const numberOfGuests = parseInt(document.getElementById("numberOfGuests").value);
+
+    if(!roomId || !guestId || !checkInDate || !checkOutDate){
+      showToast("Please fill in all booking fields", "error");
+      return;
+    }
+
+    try {
+      await api("/bookings", {
+        method: "POST",
+        body: JSON.stringify({ roomId, guestId, checkInDate, checkOutDate, numberOfGuests })
+      });
+      showToast("Booking created — room reserved", "success");
+      document.getElementById("checkInDate").value = "";
+      document.getElementById("checkOutDate").value = "";
+      loadBookings();
+      loadRooms();
+    } catch(e){
+      showToast(e.message, "error");
+    }
+  });
+
+  // ---------- init ----------
+  async function init(){
+    const online = await checkApiStatus();
+    if(online){
+      await loadRooms();
+      await loadGuests();
+      await loadBookings();
+    }
+  }
+  init();
+</script>
+
+</body>
+</html>
